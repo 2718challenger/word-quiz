@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="영단어">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ECEFF4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1320" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>영단어 스마트 학습</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&display=swap">
+<style>
+/* Layout: 사전 색인 카드 — 왼쪽은 서랍(모드·기록·약한 단어), 오른쪽은 한 장의 큰 문제 카드. 빈칸은 형광펜 자국. */
+:root{
+  --paper:#ECEFF4;
+  --sheet:#FFFFFF;
+  --ink:#141A2B;
+  --sub:#5C6579;
+  --rule:#D7DCE6;
+  --cobalt:#2B45C6;
+  --cobalt-soft:#E4E9FC;
+  --on-cobalt:#FFFFFF;
+  --mark:#FFE07A;
+  --hover:#E2E6EE;
+  --ok:#1C7444; --ok-bg:#DDF1E4;
+  --ng:#B1263A; --ng-bg:#FBE3E6;
+  --scrim:rgba(20,26,43,.42);
+  --shadow:0 1px 0 rgba(20,26,43,.04),0 18px 40px -18px rgba(20,26,43,.22);
+  --f-head:"Literata","Iowan Old Style",Georgia,"Times New Roman",serif;
+  --f-ui:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0E1320;--sheet:#171E2E;--ink:#E7EBF3;--sub:#98A2B6;--rule:#283246;--cobalt:#8FA3FF;--cobalt-soft:#222C4A;--on-cobalt:#0E1320;
+  --mark:rgba(255,206,74,.34);--hover:#1C2436;--ok:#73D39C;--ok-bg:#15301F;--ng:#FF8F9C;--ng-bg:#391A21;--scrim:rgba(0,0,0,.6);
+  --shadow:0 1px 0 rgba(0,0,0,.3),0 18px 40px -18px rgba(0,0,0,.6);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0E1320;--sheet:#171E2E;--ink:#E7EBF3;--sub:#98A2B6;--rule:#283246;--cobalt:#8FA3FF;--cobalt-soft:#222C4A;--on-cobalt:#0E1320;
+  --mark:rgba(255,206,74,.34);--hover:#1C2436;--ok:#73D39C;--ok-bg:#15301F;--ng:#FF8F9C;--ng-bg:#391A21;--scrim:rgba(0,0,0,.6);
+  --shadow:0 1px 0 rgba(0,0,0,.3),0 18px 40px -18px rgba(0,0,0,.6);color-scheme:dark}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-ui);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;-webkit-appearance:none;appearance:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.app{display:grid;grid-template-columns:288px minmax(0,1fr);gap:clamp(20px,3vw,44px);max-width:1220px;margin:0 auto;
+  padding-block:clamp(20px,3vw,36px) 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+@media (min-width:701px){.app{padding-left:max(28px,env(safe-area-inset-left,0px));padding-right:max(28px,env(safe-area-inset-right,0px))}}
+@media (min-width:701px) and (max-width:920px){.app{grid-template-columns:244px minmax(0,1fr)}}
+
+/* 서랍 */
+.side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);align-self:start;display:flex;flex-direction:column;gap:30px;min-width:0}
+.brand{display:flex;gap:12px;align-items:center}
+.brand-mark{width:42px;height:42px;flex:none;border-radius:11px;background:var(--cobalt);color:var(--on-cobalt);display:grid;place-items:center;font-family:var(--f-head);font-weight:600;font-size:19px;letter-spacing:-.02em}
+.brand h1{margin:0;font-size:17px;font-weight:700;letter-spacing:-.01em;line-height:1.3;text-wrap:balance}
+.brand p{margin:2px 0 0;font-family:var(--f-mono);font-size:12px;color:var(--sub);overflow-wrap:anywhere}
+.sec-label{margin:0 0 10px;font-family:var(--f-mono);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--sub)}
+
+.modes{display:flex;flex-direction:column;gap:4px}
+.mode{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px;align-items:center;text-align:left;min-height:54px;padding:9px 12px;border-radius:13px;border:1px solid transparent;background:transparent;cursor:pointer;transition:background .15s}
+.mode:hover{background:var(--hover)}
+.mode .dot{grid-row:span 2;width:15px;height:15px;border-radius:50%;border:1.5px solid var(--sub);opacity:.7}
+.mode b{font-weight:600;font-size:15px;line-height:1.35}
+.mode small{color:var(--sub);font-size:12.5px;line-height:1.35}
+.mode[aria-pressed="true"]{background:var(--sheet);border-color:var(--rule);box-shadow:var(--shadow)}
+.mode[aria-pressed="true"] .dot{border-color:var(--cobalt);opacity:1;background:radial-gradient(circle,var(--cobalt) 0 38%,transparent 42%)}
+.mode[aria-pressed="true"] b{color:var(--cobalt)}
+
+.stats{display:flex;gap:18px;align-items:center}
+.ring{width:76px;height:76px;flex:none}
+.ring .track{stroke:var(--rule)}
+.ring .bar{stroke:var(--cobalt);transition:stroke-dashoffset .5s ease}
+.ring-t{fill:var(--ink);font-family:var(--f-mono);font-size:17px;font-weight:500}
+.stat-list{display:grid;grid-template-columns:auto auto;gap:3px 14px;margin:0;font-size:14px}
+.stat-list dt{color:var(--sub)}
+.stat-list dd{margin:0;font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right}
+
+.weak{list-style:none;margin:0;padding:0}
+.weak li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:9px 0;border-top:1px solid var(--rule)}
+.weak li:last-child{border-bottom:1px solid var(--rule)}
+.weak .w{font-family:var(--f-head);font-weight:600;font-size:16px;overflow-wrap:anywhere}
+.weak .n{font-family:var(--f-mono);font-size:12px;color:var(--ng);align-self:center;font-variant-numeric:tabular-nums}
+.weak .m{grid-column:1/-1;color:var(--sub);font-size:13px;line-height:1.4}
+.empty{color:var(--sub);font-size:13.5px;margin:0;line-height:1.5}
+.linkbtn{margin-top:10px;background:none;border:0;padding:6px 0;color:var(--cobalt);font-weight:600;font-size:14px;cursor:pointer}
+
+.tools{display:flex;flex-wrap:wrap;gap:8px}
+.data-info{margin:10px 0 0;font-family:var(--f-mono);font-size:12px;color:var(--sub);overflow-wrap:anywhere}
+
+/* 본문 */
+.main{min-width:0;display:flex;flex-direction:column;gap:16px;container-type:inline-size}
+.notice{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;padding:12px 14px 12px 18px;border-radius:15px;background:var(--cobalt-soft);font-size:14.5px}
+.notice p{margin:0;min-width:0}
+.card{background:var(--sheet);border:1px solid var(--rule);border-radius:24px;box-shadow:var(--shadow);padding:clamp(22px,4.2cqi,48px);display:flex;flex-direction:column;gap:28px}
+.card.enter{animation:rise .28s ease-out}
+@keyframes rise{from{transform:translateY(6px);opacity:.6}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.card.enter{animation:none}.ring .bar{transition:none}}
+
+.c-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 18px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;color:var(--sub)}
+.c-tag{color:var(--cobalt);font-weight:500}
+.c-meta{font-variant-numeric:tabular-nums}
+.c-body{display:flex;flex-direction:column;gap:22px}
+.c-trans{margin:0;font-size:clamp(19px,3.4cqi,26px);font-weight:500;line-height:1.55;text-wrap:pretty}
+.c-sent{margin:0;font-family:var(--f-head);font-size:clamp(22px,4cqi,33px);line-height:1.5;text-wrap:pretty}
+.c-word{margin:0;font-family:var(--f-head);font-weight:600;font-size:clamp(40px,9cqi,72px);line-height:1.08;letter-spacing:-.015em;overflow-wrap:anywhere}
+.c-meaning{margin:0;font-size:clamp(25px,5cqi,40px);font-weight:600;line-height:1.35;text-wrap:balance}
+.c-opts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.c-opts .lbl{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;color:var(--sub);margin-right:4px}
+.chip{font-family:var(--f-head);font-size:19px;padding:5px 14px;border-radius:999px;border:1px solid var(--rule);background:var(--paper)}
+
+.mk{background:linear-gradient(transparent 56%,var(--mark) 56%,var(--mark) 94%,transparent 94%);padding:0 .14em;white-space:nowrap;border-radius:2px}
+.mk.ok{color:var(--ok)}
+.mk.ng{color:var(--ng)}
+.gap{display:inline-block;width:2.4em;height:.8em;border-bottom:2px solid var(--ink);margin-left:.04em}
+
+.c-answer,.c-result{display:flex;flex-direction:column;gap:16px;border-top:1px solid var(--rule);padding-top:24px}
+.ans{width:100%;font-family:var(--f-head);font-size:clamp(22px,4cqi,30px);padding:12px 18px;border-radius:15px;border:1.5px solid var(--rule);background:var(--paper);color:var(--ink);outline:none;transition:border-color .15s,box-shadow .15s}
+.ans::placeholder{color:var(--sub);opacity:.7;font-family:var(--f-ui);font-size:.62em}
+.ans:focus{border-color:var(--cobalt);background:var(--sheet);box-shadow:0 0 0 4px var(--cobalt-soft)}
+.ans.ok{border-color:var(--ok);color:var(--ok);background:var(--ok-bg)}
+.ans.ng{border-color:var(--ng);color:var(--ng);background:var(--ng-bg)}
+.a-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.a-row.end{justify-content:flex-end}
+.spacer{flex:1}
+.btn{min-height:46px;padding:0 18px;border-radius:13px;border:1px solid var(--rule);background:var(--sheet);font-weight:600;font-size:15px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:background .15s,border-color .15s}
+.btn:hover:not(:disabled){border-color:var(--sub)}
+.btn.sm{min-height:38px;padding:0 13px;font-size:13.5px;border-radius:11px}
+.btn.pri{background:var(--cobalt);border-color:var(--cobalt);color:var(--on-cobalt)}
+.btn.pri:hover:not(:disabled){border-color:var(--cobalt);filter:brightness(1.06)}
+.btn.danger{background:var(--ng);border-color:var(--ng);color:var(--sheet)}
+.btn:disabled{opacity:.42;cursor:default}
+.btn small{font-family:var(--f-mono);font-size:11.5px;font-weight:400;color:var(--sub)}
+.btn.pri small{color:inherit;opacity:.75}
+.kbd{font-family:var(--f-mono);font-size:11.5px;color:var(--sub);border:1px solid var(--rule);border-bottom-width:2px;border-radius:6px;padding:1px 6px;line-height:1.5}
+:is(.btn,.mode,.choice,.linkbtn):focus-visible{outline:3px solid var(--cobalt);outline-offset:2px}
+
+.choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@container (max-width:520px){.choices{grid-template-columns:minmax(0,1fr)}}
+.choice{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center;text-align:left;min-height:78px;padding:14px 18px;border-radius:17px;border:1.5px solid var(--rule);background:var(--sheet);cursor:pointer;font-size:17px;line-height:1.42;transition:border-color .15s,background .15s}
+.choice:hover:not(:disabled){border-color:var(--cobalt);background:var(--cobalt-soft)}
+.choice .num{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-family:var(--f-mono);font-size:13px;background:var(--paper);color:var(--sub)}
+.choice .ct{min-width:0;overflow-wrap:anywhere}
+.choice .ct.en{font-family:var(--f-head);font-size:21px}
+.choice:disabled{cursor:default}
+.choice.ok{border-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
+.choice.ok .num{background:var(--ok);color:var(--sheet)}
+.choice.ng{border-color:var(--ng);background:var(--ng-bg);color:var(--ng)}
+.choice.ng .num{background:var(--ng);color:var(--sheet)}
+.choice.dim{opacity:.5}
+
+.verdict{display:flex;gap:14px;align-items:flex-start;padding:14px 18px;border-radius:15px}
+.verdict.ok{background:var(--ok-bg);color:var(--ok)}
+.verdict.ng{background:var(--ng-bg);color:var(--ng)}
+.verdict svg{flex:none;width:26px;height:26px;margin-top:1px}
+.verdict strong{display:block;font-size:17px;line-height:1.4}
+.verdict .v-sub{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:3px;color:var(--ink);font-size:14.5px}
+.verdict .en{font-family:var(--f-head);font-weight:600;font-size:17px}
+.verdict s{font-family:var(--f-head);color:var(--sub)}
+.entry{display:flex;flex-direction:column;gap:8px;padding:4px 2px}
+.e-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px}
+.e-word{font-family:var(--f-head);font-weight:600;font-size:30px;line-height:1.2;overflow-wrap:anywhere}
+.e-mean{font-size:17px;color:var(--sub)}
+.e-sent{margin:0;font-family:var(--f-head);font-style:italic;font-size:20px;line-height:1.5}
+.e-trans{margin:0;color:var(--sub);font-size:15.5px}
+
+.overlay{position:fixed;inset:0;z-index:30;background:var(--scrim);display:flex;align-items:center;justify-content:center;
+  padding:calc(24px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet{background:var(--sheet);border:1px solid var(--rule);border-radius:22px;width:min(580px,100%);max-height:100%;overflow:auto;padding:26px 28px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:18px}
+.sheet h2{margin:0;font-size:20px;font-weight:700;text-wrap:balance}
+.sheet p{margin:0}
+.big-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:480px){.big-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.big-stats div{background:var(--paper);border-radius:14px;padding:12px 14px}
+.big-stats b{display:block;font-family:var(--f-mono);font-size:24px;font-weight:500;font-variant-numeric:tabular-nums}
+.big-stats span{color:var(--sub);font-size:13px}
+.note-list{list-style:none;margin:0;padding:0}
+.note-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 14px;padding:11px 0;border-top:1px solid var(--rule)}
+.note-list .w{font-family:var(--f-head);font-weight:600;font-size:18px;overflow-wrap:anywhere}
+.note-list .m{grid-column:1/-1;color:var(--sub);font-size:14.5px}
+.note-list .n{font-family:var(--f-mono);font-size:12.5px;color:var(--sub);align-self:center;font-variant-numeric:tabular-nums}
+
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:40;background:var(--ink);color:var(--paper);padding:11px 20px;border-radius:999px;font-size:14.5px;font-weight:500;box-shadow:var(--shadow);max-width:calc(100% - 32px);text-align:center}
+
+@media (max-width:700px){
+  .side{position:static;gap:20px}
+  .modes{flex-direction:row;overflow-x:auto;gap:6px;padding:2px 2px 6px;scrollbar-width:none}
+  .modes::-webkit-scrollbar{display:none}
+  .mode{flex:none;min-height:44px;padding:8px 14px}
+  .mode small{display:none}
+  .weak-sec{display:none}
+  .card{border-radius:20px}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">Aa</div>
+      <div><h1>영단어 스마트 학습</h1><p>틀린 단어는 더 자주 나옵니다</p></div>
+    </div>
+
+    <section>
+      <h2 class="sec-label">문제 유형</h2>
+      <div class="modes" id="modes"></div>
+    </section>
+
+    <section>
+      <h2 class="sec-label">이번 학습</h2>
+      <div class="stats">
+        <svg class="ring" viewBox="0 0 80 80" aria-hidden="true">
+          <circle class="track" cx="40" cy="40" r="32" fill="none" stroke-width="7"></circle>
+          <circle class="bar" id="ringBar" cx="40" cy="40" r="32" fill="none" stroke-width="7" stroke-linecap="round" transform="rotate(-90 40 40)" stroke-dasharray="201.06" stroke-dashoffset="201.06"></circle>
+          <text class="ring-t" id="ringT" x="40" y="46" text-anchor="middle">–</text>
+        </svg>
+        <dl class="stat-list">
+          <dt>정답</dt><dd id="stCorrect">0 / 0</dd>
+          <dt>연속</dt><dd id="stStreak">0</dd>
+          <dt>최고 연속</dt><dd id="stBest">0</dd>
+        </dl>
+      </div>
+    </section>
+
+    <section class="weak-sec">
+      <h2 class="sec-label">약한 단어 <span id="weakCount"></span></h2>
+      <div id="weak"></div>
+      <button class="linkbtn" id="openNotes" type="button">오답 노트 전체 보기 →</button>
+    </section>
+
+    <section>
+      <div class="tools">
+        <button class="btn sm" id="loadCsv" type="button">CSV 불러오기</button>
+        <button class="btn sm" id="openStats" type="button">학습 통계</button>
+        <button class="btn sm" id="openReset" type="button">기록 초기화</button>
+      </div>
+      <p class="data-info" id="dataInfo"></p>
+    </section>
+  </aside>
+
+  <main class="main">
+    <div class="notice" id="notice" hidden>
+      <p>예시 단어 8개로 체험하는 중입니다. <b>result_final.csv</b>를 불러오면 내 단어장으로 바뀝니다.</p>
+      <button class="btn sm pri" id="loadCsv2" type="button">CSV 불러오기</button>
+    </div>
+    <article class="card" id="card" aria-live="polite"></article>
+  </main>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" id="sheet"></div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+<input type="file" id="file" accept=".csv,text/csv,text/plain" hidden>
+
+<script>
+(function(){
+'use strict';
+var BLANK='______';
+var MODES=[
+  {id:'spell',name:'철자 쓰기',desc:'해석을 보고 빈칸 철자 쓰기'},
+  {id:'blank',name:'빈칸 채우기',desc:'보기를 보고 알맞은 형태로'},
+  {id:'w2m',name:'단어 → 뜻',desc:'뜻 고르기 · 4지선다'},
+  {id:'m2w',name:'뜻 → 단어',desc:'단어 고르기 · 4지선다'},
+  {id:'mix',name:'섞어서 풀기',desc:'네 유형을 무작위로'}
+];
+var TAG={spell:'SPELL · 철자 쓰기',blank:'FILL · 빈칸 채우기',w2m:'MEANING · 단어 → 뜻',m2w:'WORD · 뜻 → 단어'};
+var SAMPLE=[
+  ['abandon','버리다, 포기하다','They had to `abandon` the car in the snow.','그들은 눈 속에 차를 버려야 했다.'],
+  ['reluctant','꺼리는, 마지못한','She was `reluctant` to admit her mistake.','그녀는 자신의 실수를 인정하기를 꺼렸다.'],
+  ['thrive','번성하다, 잘 자라다','These plants `thrive` in warm climates.','이 식물들은 따뜻한 기후에서 잘 자란다.'],
+  ['conceal','숨기다','He tried to `conceal` his disappointment.','그는 실망감을 숨기려고 애썼다.'],
+  ['inevitable','피할 수 없는','Change is `inevitable` in any organization.','어떤 조직에서든 변화는 피할 수 없다.'],
+  ['diminish','줄어들다, 약해지다','The pain `diminished` after a few days.','며칠 뒤 통증이 줄어들었다.'],
+  ['scrutinize','면밀히 조사하다','The committee will `scrutinize` the proposal.','위원회가 그 제안서를 면밀히 검토할 것이다.'],
+  ['vivid','생생한, 선명한','She has `vivid` memories of her childhood.','그녀는 어린 시절을 생생하게 기억한다.']
+];
+
+var $=function(s){return document.querySelector(s)};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+var store={
+  get:function(k){try{var v=localStorage.getItem(k);return v==null?null:JSON.parse(v)}catch(e){return null}},
+  set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+
+/* ───── 데이터 ───── */
+function makeWord(word,meaning,ex,tr){
+  word=(word||'').trim();ex=(ex||'').trim();
+  if(!word||!ex)return null;
+  var m=ex.match(/`([^`]+)`/),target,blank;
+  if(m){target=m[1];blank=ex.slice(0,m.index)+BLANK+ex.slice(m.index+m[0].length)}
+  else{
+    target=word;
+    var re=new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i');
+    blank=ex.replace(re,function(){return BLANK});
+    if(blank===ex)blank=ex+'  ( '+BLANK+' )';
+  }
+  return{word:word,meaning:(meaning||'').trim(),blank:blank.replace(/`/g,''),sentence:ex.replace(/`/g,''),
+    translation:(tr||'').trim(),target:target,weight:1,right:0,wrong:0};
+}
+function parseCSV(t){
+  var rows=[],r=[],f='',q=false,i,c;
+  for(i=0;i<t.length;i++){
+    c=t[i];
+    if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+    else if(c==='"')q=true;
+    else if(c===','){r.push(f);f=''}
+    else if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;r.push(f);rows.push(r);r=[];f=''}
+    else f+=c;
+  }
+  if(f||r.length){r.push(f);rows.push(r)}
+  return rows;
+}
+function buildWords(text){
+  var rows=parseCSV(text.replace(/^﻿/,''));
+  var head=(rows.shift()||[]).map(function(x){return x.trim()}),ix={};
+  var missing=['영단어','뜻','예문','해석'].filter(function(n){ix[n]=head.indexOf(n);return ix[n]<0});
+  if(missing.length)throw new Error('CSV에 필요한 열이 없습니다: '+missing.join(', ')+'. 첫 줄이 "번호,영단어,뜻,예문,해석"인지 확인해 주세요.');
+  var out=[];
+  rows.forEach(function(r){var w=makeWord(r[ix['영단어']],r[ix['뜻']],r[ix['예문']],r[ix['해석']]);if(w)out.push(w)});
+  return out;
+}
+
+var words=[],isSample=false,source='',recent=[],q=null,phase='idle',mode='spell',qNo=0;
+var S=newSession();
+function newSession(){return{total:0,correct:0,streak:0,best:0,wrong:{}}}
+
+function loadProgress(){
+  var d=store.get('wq_prog')||{};
+  words.forEach(function(w){var p=d[w.word];if(p){w.weight=+p.weight||1;w.right=+p.right||0;w.wrong=+p.wrong||0}});
+}
+function saveProgress(){
+  if(isSample)return;
+  var d={};
+  words.forEach(function(w){if(w.right||w.wrong)d[w.word]={weight:Math.round(w.weight*1000)/1000,right:w.right,wrong:w.wrong}});
+  store.set('wq_prog',d);
+}
+
+/* ───── 출제·채점 ───── */
+function norm(s){return s.replace(/[’‘]/g,"'").toLowerCase().split(/\s+/).filter(Boolean).join(' ')}
+function lev(a,b){
+  var p=[],i,j,prev,tmp;
+  for(j=0;j<=b.length;j++)p[j]=j;
+  for(i=1;i<=a.length;i++){prev=p[0];p[0]=i;
+    for(j=1;j<=b.length;j++){tmp=p[j];p[j]=Math.min(p[j]+1,p[j-1]+1,prev+(a[i-1]===b[j-1]?0:1));prev=tmp}}
+  return p[b.length];
+}
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
+function pick(){
+  var pool=words.filter(function(w){return recent.indexOf(w.word)<0});
+  if(!pool.length)pool=words;
+  var sum=0;pool.forEach(function(w){sum+=w.weight});
+  var r=Math.random()*sum;
+  for(var i=0;i<pool.length;i++){r-=pool[i].weight;if(r<=0)return pool[i]}
+  return pool[pool.length-1];
+}
+function distract(w,key){
+  var seen={},pool=[];
+  words.forEach(function(x){if(x[key]!==w[key]&&!seen[x[key]]){seen[x[key]]=1;pool.push(x[key])}});
+  return shuffle(pool).slice(0,3);
+}
+function nextQuestion(){
+  var w=pick();
+  recent.push(w.word);
+  while(recent.length>Math.min(5,Math.floor(words.length/2)))recent.shift();
+  var kinds=mode==='mix'?['spell','blank','w2m','m2w']:[mode];
+  var k=kinds[Math.floor(Math.random()*kinds.length)];
+  var o={kind:k,w:w,hint:0,extra:0,max:Math.max(w.target.length-1,0)};
+  if(k==='w2m'){o.answer=w.meaning;o.choices=shuffle(distract(w,'meaning').concat(w.meaning))}
+  else if(k==='m2w'){o.answer=w.word;o.choices=shuffle(distract(w,'word').concat(w.word))}
+  else if(k==='blank'){o.answer=w.target;o.opts=shuffle(distract(w,'word').concat(w.word))}
+  else{o.answer=w.target;o.hint=Math.min(1,o.max)}
+  return o;
+}
+function record(ok){
+  var w=q.w;S.total++;
+  if(ok){S.correct++;S.streak++;S.best=Math.max(S.best,S.streak);w.right++;w.weight=Math.max(.1,w.weight*(q.extra?.8:.5))}
+  else{S.streak=0;w.wrong++;w.weight+=2;S.wrong[w.word]=w}
+  saveProgress();
+}
+function weakWords(){
+  return words.filter(function(w){return w.wrong>w.right})
+    .sort(function(a,b){return(a.right-a.wrong)-(b.right-b.wrong)||b.weight-a.weight});
+}
+
+/* ───── 화면 ───── */
+function sentenceHTML(w,state){
+  var i=w.blank.indexOf(BLANK);
+  if(i<0)return esc(w.sentence);
+  var pre=w.blank.slice(0,i),post=w.blank.slice(i+BLANK.length),mid;
+  if(state==='ask'){var p=q.hint?w.target.slice(0,q.hint):'';mid='<span class="mk">'+esc(p)+'<span class="gap"></span></span>'}
+  else mid='<span class="mk '+(state==='show'?'':state)+'">'+esc(w.target)+'</span>';
+  return esc(pre)+mid+esc(post);
+}
+function renderModes(){
+  $('#modes').innerHTML=MODES.map(function(m){
+    return '<button type="button" class="mode" data-mode="'+m.id+'" aria-pressed="'+(m.id===mode)+'"><span class="dot"></span><b>'+m.name+'</b><small>'+m.desc+'</small></button>';
+  }).join('');
+}
+function renderSide(){
+  var pct=S.total?S.correct/S.total:0,C=201.06;
+  $('#ringBar').setAttribute('stroke-dashoffset',String(C*(1-pct)));
+  $('#ringT').textContent=S.total?Math.round(pct*100)+'%':'–';
+  $('#stCorrect').textContent=S.correct+' / '+S.total;
+  $('#stStreak').textContent=S.streak;
+  $('#stBest').textContent=S.best;
+  var ws=weakWords();
+  $('#weakCount').textContent=ws.length?'· '+ws.length:'';
+  $('#weak').innerHTML=ws.length?'<ul class="weak">'+ws.slice(0,5).map(function(w){
+    return '<li><span class="w">'+esc(w.word)+'</span><span class="n">오답 '+w.wrong+'</span><span class="m">'+esc(w.meaning)+'</span></li>';
+  }).join('')+'</ul>':'<p class="empty">아직 없습니다. 틀린 횟수가 맞힌 횟수보다 많은 단어가 여기에 모입니다.</p>';
+  $('#openNotes').hidden=!ws.length;
+  $('#dataInfo').textContent=isSample?'예시 단어 '+words.length+'개':(source||'단어장')+' · 단어 '+words.length+'개';
+  $('#notice').hidden=!isSample;
+}
+function renderCard(){
+  var w=q.w,card=$('#card'),h='';
+  var seen=(w.right||w.wrong)?'이 단어 정답 '+w.right+' · 오답 '+w.wrong:'처음 나온 단어';
+  h+='<header class="c-head"><span class="c-tag">'+TAG[q.kind]+'</span><span class="c-meta">문제 '+qNo+' · '+seen+'</span></header><div class="c-body">';
+  if(q.kind==='spell')h+='<p class="c-trans">'+esc(w.translation)+'</p><p class="c-sent" id="sent">'+sentenceHTML(w,'ask')+'</p>';
+  else if(q.kind==='blank')h+='<div class="c-opts"><span class="lbl">보기</span>'+q.opts.map(function(o){return '<span class="chip">'+esc(o)+'</span>'}).join('')+'</div><p class="c-sent" id="sent">'+sentenceHTML(w,'ask')+'</p>';
+  else if(q.kind==='w2m')h+='<p class="c-word">'+esc(w.word)+'</p>';
+  else h+='<p class="c-meaning">'+esc(w.meaning)+'</p>';
+  h+='</div><div class="c-answer" id="answer">';
+  if(q.choices){
+    var en=q.kind==='m2w'?' en':'';
+    h+='<div class="choices">'+q.choices.map(function(c,i){
+      return '<button type="button" class="choice" data-i="'+i+'"><span class="num">'+(i+1)+'</span><span class="ct'+en+'">'+esc(c)+'</span></button>';
+    }).join('')+'</div><div class="a-row" id="ctrl"><button type="button" class="btn" id="pass">모르겠음 <small>0</small></button></div>';
+    phase='choice';
+  }else{
+    h+='<label class="sr" for="ans">정답 입력</label><input id="ans" class="ans" type="text" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done" placeholder="빈칸에 들어갈 형태를 입력하세요">'+
+      '<div class="a-row" id="ctrl"><button type="button" class="btn" id="hint">힌트 <small id="hintN"></small></button><button type="button" class="btn" id="pass">모르겠음</button><span class="spacer"></span><button type="button" class="btn pri" id="submit">제출 <small>Enter</small></button></div>';
+    phase='typing';
+  }
+  h+='</div><div class="c-result" id="result" hidden></div>';
+  card.innerHTML=h;
+  card.classList.remove('enter');void card.offsetWidth;card.classList.add('enter');
+  if(phase==='typing'){updateHint();var a=$('#ans');try{a.focus({preventScroll:true})}catch(e){a.focus()}}
+}
+function updateHint(){
+  var b=$('#hint');if(!b)return;
+  $('#hintN').textContent=q.hint?'앞 '+q.hint+'글자':'앞글자';
+  b.disabled=q.hint>=q.max;
+}
+function useHint(){
+  if(phase!=='typing'||q.hint>=q.max)return;
+  q.hint++;q.extra++;
+  $('#sent').innerHTML=sentenceHTML(q.w,'ask');
+  updateHint();$('#ans').focus();
+}
+var ICON_OK='<svg viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="12" fill="currentColor"></circle><path d="M7.5 13.4l3.6 3.6 7.4-7.6" fill="none" stroke="var(--sheet)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
+var ICON_NG='<svg viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="12" fill="currentColor"></circle><path d="M8.6 8.6l8.8 8.8M17.4 8.6l-8.8 8.8" fill="none" stroke="var(--sheet)" stroke-width="2.4" stroke-linecap="round"></path></svg>';
+function finish(ok,close,typed){
+  record(ok);
+  var w=q.w,ctrl=$('#ctrl');if(ctrl)ctrl.remove();
+  if(!q.choices)$('#sent').innerHTML=sentenceHTML(w,ok?'ok':'ng');
+  var sub='';
+  if(ok){
+    if(q.extra)sub+='<span>힌트 '+q.extra+'회 사용</span>';
+    if(S.streak>=3)sub+='<span>'+S.streak+'연속 정답</span>';
+  }else{
+    sub+='<span>정답 <span class="en">'+esc(q.answer)+'</span></span>';
+    if(typed)sub+='<span>입력 <s>'+esc(typed)+'</s></span>';
+    if(close)sub+='<span>거의 맞았어요. 스펠링이나 형태 변화를 확인하세요.</span>';
+  }
+  var h='<div class="verdict '+(ok?'ok':'ng')+'">'+(ok?ICON_OK:ICON_NG)+'<div><strong>'+(ok?'정답입니다':'틀렸습니다')+'</strong>'+(sub?'<div class="v-sub">'+sub+'</div>':'')+'</div></div>';
+  h+='<div class="entry"><div class="e-head"><span class="e-word">'+esc(w.word)+'</span><span class="e-mean">'+esc(w.meaning)+'</span></div>';
+  if(q.choices)h+='<p class="e-sent">'+sentenceHTML(w,'show')+'</p>';
+  h+='<p class="e-trans">'+esc(w.translation)+'</p></div>';
+  h+='<div class="a-row end"><button type="button" class="btn pri" id="next">다음 문제 <small>Enter</small></button></div>';
+  var r=$('#result');r.innerHTML=h;r.hidden=false;
+  phase='result';renderSide();
+  var nb=$('#next');
+  try{nb.focus({preventScroll:true})}catch(e){nb.focus()}
+  if(r.scrollIntoView)r.scrollIntoView({block:'nearest',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+}
+function onChoice(i){
+  if(phase!=='choice')return;
+  var ok=i>=0&&q.choices[i]===q.answer;
+  document.querySelectorAll('.choice').forEach(function(b){
+    var j=+b.getAttribute('data-i');b.disabled=true;
+    if(q.choices[j]===q.answer)b.classList.add('ok');
+    else if(j===i)b.classList.add('ng');
+    else b.classList.add('dim');
+  });
+  finish(ok,false,'');
+}
+function submit(){
+  if(phase!=='typing')return;
+  var inp=$('#ans'),t=inp.value.trim(),a=norm(q.answer),n=norm(t),ok=n===a,close=false;
+  if(!ok&&n)close=1-lev(n,a)/Math.max(n.length,a.length)>=.8;
+  inp.disabled=true;inp.classList.add(ok?'ok':'ng');inp.blur();
+  finish(ok,close,ok?'':t);
+}
+function newQ(){
+  if(!words.length)return;
+  q=nextQuestion();qNo++;
+  renderCard();renderSide();
+}
+
+/* ───── 시트·알림 ───── */
+var toastTimer=null;
+function toast(msg){var t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.hidden=true},2600)}
+function openSheet(title,body,actions){
+  $('#sheet').innerHTML='<h2 id="sheetTitle">'+title+'</h2>'+body+'<div class="a-row end">'+(actions||'<button type="button" class="btn pri" data-close>닫기</button>')+'</div>';
+  $('#overlay').hidden=false;
+  var f=$('#sheet [data-close]')||$('#sheet .btn');if(f)f.focus();
+}
+function closeSheet(){$('#overlay').hidden=true;if(phase==='typing'&&$('#ans'))$('#ans').focus();else if(phase==='result'&&$('#next'))$('#next').focus()}
+$('#overlay').addEventListener('click',function(e){if(e.target.id==='overlay'||e.target.hasAttribute('data-close'))closeSheet()});
+
+function showNotes(){
+  var ws=weakWords();
+  if(!ws.length)return openSheet('오답 노트','<p class="empty">아직 약한 단어가 없습니다. 틀린 횟수가 맞힌 횟수보다 많은 단어가 표시됩니다.</p>');
+  openSheet('오답 노트 · '+ws.length+'개','<ul class="note-list">'+ws.map(function(w){
+    return '<li><span class="w">'+esc(w.word)+'</span><span class="n">오답 '+w.wrong+' · 정답 '+w.right+'</span><span class="m">'+esc(w.meaning)+'</span></li>';
+  }).join('')+'</ul>');
+}
+function showStats(){
+  if(!S.total)return openSheet('학습 통계','<p class="empty">아직 푼 문제가 없습니다.</p>');
+  var k=Object.keys(S.wrong);
+  var body='<div class="big-stats"><div><b>'+S.total+'</b><span>푼 문제</span></div><div><b>'+S.correct+'</b><span>정답</span></div><div><b>'+(S.correct/S.total*100).toFixed(1)+'%</b><span>정답률</span></div><div><b>'+S.best+'</b><span>최고 연속</span></div></div>';
+  if(k.length)body+='<div><h3 class="sec-label" style="margin-top:6px">이번에 틀린 단어 · '+k.length+'개</h3><ul class="note-list">'+k.map(function(x){
+    return '<li><span class="w">'+esc(x)+'</span><span class="m">'+esc(S.wrong[x].meaning)+'</span></li>';
+  }).join('')+'</ul></div>';
+  openSheet('학습 통계',body);
+}
+function askReset(){
+  openSheet('학습 기록 초기화','<p>저장된 가중치와 정답·오답 횟수를 모두 지웁니다. 불러온 단어장은 그대로 남습니다.</p>',
+    '<button type="button" class="btn" data-close>취소</button><button type="button" class="btn danger" id="doReset">기록 지우기</button>');
+  $('#doReset').addEventListener('click',function(){
+    words.forEach(function(w){w.weight=1;w.right=0;w.wrong=0});
+    store.set('wq_prog',{});S=newSession();qNo=0;recent=[];
+    $('#overlay').hidden=true;newQ();toast('학습 기록을 지웠습니다');
+  });
+}
+
+/* ───── CSV 불러오기 ───── */
+function pickFile(){$('#file').click()}
+$('#file').addEventListener('change',function(){
+  var f=this.files&&this.files[0];this.value='';if(!f)return;
+  var rd=new FileReader();
+  rd.onerror=function(){openSheet('불러오지 못했습니다','<p>파일을 읽는 중 문제가 생겼습니다. 파일을 다시 선택해 주세요.</p>')};
+  rd.onload=function(){
+    var buf=rd.result,txt;
+    try{txt=new TextDecoder('utf-8',{fatal:true}).decode(buf)}
+    catch(e){try{txt=new TextDecoder('euc-kr').decode(buf)}catch(e2){return openSheet('불러오지 못했습니다','<p>CSV 인코딩을 읽을 수 없습니다. 엑셀에서 "CSV UTF-8" 형식으로 다시 저장해 주세요.</p>')}}
+    var ws;
+    try{ws=buildWords(txt)}catch(err){return openSheet('불러오지 못했습니다','<p>'+esc(err.message)+'</p>')}
+    if(!ws.length)return openSheet('불러오지 못했습니다','<p>단어 데이터가 없습니다. 영단어와 예문 칸이 채워져 있는지 확인해 주세요.</p>');
+    words=ws;isSample=false;source=f.name;
+    store.set('wq_words',ws.map(function(w){return{word:w.word,meaning:w.meaning,blank:w.blank,sentence:w.sentence,translation:w.translation,target:w.target}}));
+    store.set('wq_src',source);
+    loadProgress();S=newSession();recent=[];qNo=0;newQ();
+    toast('단어 '+ws.length+'개를 불러왔습니다');
+  };
+  rd.readAsArrayBuffer(f);
+});
+
+/* ───── 이벤트 ───── */
+$('#modes').addEventListener('click',function(e){
+  var b=e.target.closest('.mode');if(!b)return;
+  mode=b.getAttribute('data-mode');store.set('wq_mode',mode);
+  renderModes();newQ();
+});
+$('#card').addEventListener('click',function(e){
+  var t=e.target.closest('button');if(!t)return;
+  if(t.classList.contains('choice'))onChoice(+t.getAttribute('data-i'));
+  else if(t.id==='pass'){if(phase==='typing'){$('#ans').value='';submit()}else onChoice(-1)}
+  else if(t.id==='hint')useHint();
+  else if(t.id==='submit')submit();
+  else if(t.id==='next')newQ();
+});
+$('#loadCsv').addEventListener('click',pickFile);
+$('#loadCsv2').addEventListener('click',pickFile);
+$('#openNotes').addEventListener('click',showNotes);
+$('#openStats').addEventListener('click',showStats);
+$('#openReset').addEventListener('click',askReset);
+document.addEventListener('keydown',function(e){
+  if(!$('#overlay').hidden){if(e.key==='Escape')closeSheet();return}
+  if(e.isComposing||e.metaKey)return;
+  if(phase==='choice'&&/^[0-4]$/.test(e.key)){e.preventDefault();var n=+e.key;onChoice(n===0?-1:n-1)}
+  else if(phase==='typing'){
+    if(e.key==='Enter'){e.preventDefault();submit()}
+    else if(e.ctrlKey&&(e.key==='h'||e.key==='H')){e.preventDefault();useHint()}
+  }
+  else if(phase==='result'&&e.key==='Enter'){e.preventDefault();newQ()}
+});
+
+/* ───── 시작 ───── */
+(function init(){
+  var m=store.get('wq_mode');if(MODES.some(function(x){return x.id===m}))mode=m;
+  var saved=store.get('wq_words');
+  if(saved&&saved.length){
+    words=saved.map(function(w){return{word:w.word,meaning:w.meaning,blank:w.blank,sentence:w.sentence,translation:w.translation,target:w.target,weight:1,right:0,wrong:0}});
+    source=store.get('wq_src')||'result_final.csv';loadProgress();
+  }else{
+    isSample=true;
+    words=SAMPLE.map(function(r){return makeWord(r[0],r[1],r[2],r[3])}).filter(Boolean);
+  }
+  renderModes();newQ();
+})();
+})();
+</script>
+
+</body>
+</html>
