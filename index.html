@@ -141,6 +141,13 @@ button{font:inherit;color:inherit;-webkit-appearance:none;appearance:none}
 .btn small{font-family:var(--f-mono);font-size:11.5px;font-weight:400;color:var(--sub)}
 .btn.pri small{color:inherit;opacity:.75}
 .kbd{font-family:var(--f-mono);font-size:11.5px;color:var(--sub);border:1px solid var(--rule);border-bottom-width:2px;border-radius:6px;padding:1px 6px;line-height:1.5}
+.hk,.hk-only{display:none}
+@media (hover:hover) and (pointer:fine){.hk{display:inline}.hk-only{display:inline-flex}}
+.keys{display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:10px 20px;margin:0;align-items:center}
+.keys dt{display:flex;flex-wrap:wrap;align-items:center;gap:4px;color:var(--sub)}
+.keys dd{margin:0;font-size:15px;word-break:keep-all;overflow-wrap:break-word}
+.keys-note{color:var(--sub);font-size:13.5px;word-break:keep-all;overflow-wrap:break-word}
+@media (max-width:520px){.keys{grid-template-columns:minmax(0,1fr);gap:4px}.keys dd{margin-bottom:12px}}
 :is(.btn,.mode,.choice,.linkbtn):focus-visible{outline:3px solid var(--cobalt);outline-offset:2px}
 
 .choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
@@ -239,14 +246,15 @@ button{font:inherit;color:inherit;-webkit-appearance:none;appearance:none}
     <section class="weak-sec">
       <h2 class="sec-label">약한 단어 <span id="weakCount"></span></h2>
       <div id="weak"></div>
-      <button class="linkbtn" id="openNotes" type="button">오답 노트 전체 보기 →</button>
+      <button class="linkbtn" id="openNotes" type="button" title="단축키 Alt+N">오답 노트 전체 보기 →</button>
     </section>
 
     <section class="sec-tools">
       <div class="tools">
-        <button class="btn sm" id="loadCsv" type="button">CSV 불러오기</button>
-        <button class="btn sm" id="openStats" type="button">학습 통계</button>
-        <button class="btn sm" id="openReset" type="button">기록 초기화</button>
+        <button class="btn sm" id="loadCsv" type="button" title="단축키 Alt+L">CSV 불러오기</button>
+        <button class="btn sm" id="openStats" type="button" title="단축키 Alt+S">학습 통계</button>
+        <button class="btn sm" id="openReset" type="button" title="단축키 Alt+R">기록 초기화</button>
+        <button class="btn sm hk-only" id="openKeys" type="button" title="단축키 ? 또는 Alt+K">단축키 <span class="kbd">?</span></button>
       </div>
       <p class="data-info" id="dataInfo"></p>
     </section>
@@ -433,8 +441,8 @@ function sentenceHTML(w,state){
   return esc(pre)+mid+esc(post);
 }
 function renderModes(){
-  $('#modes').innerHTML=MODES.map(function(m){
-    return '<button type="button" class="mode" data-mode="'+m.id+'" aria-pressed="'+(m.id===mode)+'"><span class="dot"></span><b>'+m.name+'</b><small>'+m.desc+'</small></button>';
+  $('#modes').innerHTML=MODES.map(function(m,i){
+    return '<button type="button" class="mode" data-mode="'+m.id+'" aria-pressed="'+(m.id===mode)+'" title="단축키 Alt+'+(i+1)+'"><span class="dot"></span><b>'+m.name+'</b><small>'+m.desc+'</small></button>';
   }).join('');
 }
 function renderSide(){
@@ -466,11 +474,11 @@ function renderCard(){
     var en=q.kind==='m2w'?' en':'';
     h+='<div class="choices">'+q.choices.map(function(c,i){
       return '<button type="button" class="choice" data-i="'+i+'"><span class="num">'+(i+1)+'</span><span class="ct'+en+'">'+esc(c)+'</span></button>';
-    }).join('')+'</div><div class="a-row" id="ctrl"><button type="button" class="btn" id="pass">모르겠음 <small>0</small></button></div>';
+    }).join('')+'</div><div class="a-row" id="ctrl"><button type="button" class="btn" id="pass">모르겠음 <small class="hk">0</small></button></div>';
     phase='choice';
   }else{
     h+='<label class="sr" for="ans">정답 입력</label><input id="ans" class="ans" type="text" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done" placeholder="빈칸에 들어갈 형태를 입력하세요">'+
-      '<div class="a-row" id="ctrl"><button type="button" class="btn" id="hint">힌트 <small id="hintN"></small></button><button type="button" class="btn" id="pass">모르겠음</button><span class="spacer"></span><button type="button" class="btn pri" id="submit">제출 <small>Enter</small></button></div>';
+      '<div class="a-row" id="ctrl"><button type="button" class="btn" id="hint">힌트 <small id="hintN"></small><small class="hk">F1</small></button><button type="button" class="btn" id="pass">모르겠음 <small class="hk">Esc</small></button><span class="spacer"></span><button type="button" class="btn pri" id="submit">제출 <small class="hk">Enter</small></button></div>';
     phase='typing';
   }
   h+='</div><div class="c-result" id="result" hidden></div>';
@@ -508,7 +516,7 @@ function finish(ok,close,typed){
   h+='<div class="entry"><div class="e-head"><span class="e-word">'+esc(w.word)+'</span><span class="e-mean">'+esc(w.meaning)+'</span></div>';
   if(q.choices)h+='<p class="e-sent">'+sentenceHTML(w,'show')+'</p>';
   h+='<p class="e-trans">'+esc(w.translation)+'</p></div>';
-  h+='<div class="a-row end"><button type="button" class="btn pri" id="next">다음 문제 <small>Enter</small></button></div>';
+  h+='<div class="a-row end"><button type="button" class="btn pri" id="next">다음 문제 <small class="hk">Enter</small></button></div>';
   var r=$('#result');r.innerHTML=h;r.hidden=false;
   phase='result';renderSide();
   var nb=$('#next');
@@ -566,6 +574,30 @@ function showStats(){
   }).join('')+'</ul></div>';
   openSheet('학습 통계',body);
 }
+function kb(){return Array.prototype.map.call(arguments,function(k){return '<span class="kbd">'+k+'</span>'}).join('<span>+</span>')}
+function showKeys(){
+  var row=function(keys,desc){return '<dt>'+keys+'</dt><dd>'+desc+'</dd>'};
+  var body=
+    '<div><h3 class="sec-label">문제 풀이</h3><dl class="keys">'+
+      row(kb('Enter'),'제출 · 다음 문제')+
+      row(kb('Space'),'다음 문제 (결과 화면에서)')+
+      row(kb('1')+' ~ '+kb('4'),'보기 고르기 (선택형 문제)')+
+      row(kb('0'),'모르겠음 (선택형 문제)')+
+      row(kb('F1')+' 또는 '+kb('Ctrl','H'),'힌트: 앞글자 하나 더 보기 (입력형 문제)')+
+      row(kb('Esc'),'모르겠음 (입력형 문제)')+
+    '</dl></div>'+
+    '<div><h3 class="sec-label">메뉴</h3><dl class="keys">'+
+      row(kb('Alt','1')+' ~ '+kb('5'),'문제 유형 바꾸기: 1 철자 쓰기 · 2 빈칸 채우기 · 3 단어→뜻 · 4 뜻→단어 · 5 섞어서')+
+      row(kb('Alt','N'),'오답 노트')+
+      row(kb('Alt','S'),'학습 통계')+
+      row(kb('Alt','L'),'CSV 불러오기')+
+      row(kb('Alt','R'),'학습 기록 초기화')+
+      row(kb('?')+' 또는 '+kb('Alt','K'),'이 목록 열기')+
+      row(kb('Esc'),'창 닫기')+
+    '</dl></div>'+
+    '<p class="keys-note">맥에서는 Alt 대신 Option 키를 누릅니다. 답을 입력하는 중에는 Alt 조합만 메뉴로 동작하고, 나머지 글자는 그대로 입력됩니다.</p>';
+  openSheet('단축키',body);
+}
 function askReset(){
   openSheet('학습 기록 초기화','<p>저장된 가중치, 정답·오답 횟수, 누적 학습 통계를 모두 지웁니다. 불러온 단어장은 그대로 남습니다.</p>',
     '<button type="button" class="btn" data-close>취소</button><button type="button" class="btn danger" id="doReset">기록 지우기</button>');
@@ -599,10 +631,14 @@ $('#file').addEventListener('change',function(){
 });
 
 /* ───── 이벤트 ───── */
+function setMode(id){
+  if(!MODES.some(function(m){return m.id===id}))return;
+  mode=id;store.set('wq_mode',mode);
+  renderModes();newQ();
+}
 $('#modes').addEventListener('click',function(e){
   var b=e.target.closest('.mode');if(!b)return;
-  mode=b.getAttribute('data-mode');store.set('wq_mode',mode);
-  renderModes();newQ();
+  setMode(b.getAttribute('data-mode'));
 });
 $('#card').addEventListener('click',function(e){
   var t=e.target.closest('button');if(!t)return;
@@ -617,15 +653,32 @@ $('#loadCsv2').addEventListener('click',pickFile);
 $('#openNotes').addEventListener('click',showNotes);
 $('#openStats').addEventListener('click',showStats);
 $('#openReset').addEventListener('click',askReset);
+$('#openKeys').addEventListener('click',showKeys);
 document.addEventListener('keydown',function(e){
-  if(!$('#overlay').hidden){if(e.key==='Escape')closeSheet();return}
-  if(e.isComposing||e.metaKey)return;
-  if(phase==='choice'&&/^[0-4]$/.test(e.key)){e.preventDefault();var n=+e.key;onChoice(n===0?-1:n-1)}
-  else if(phase==='typing'){
-    if(e.key==='Enter'){e.preventDefault();submit()}
-    else if(e.ctrlKey&&(e.key==='h'||e.key==='H')){e.preventDefault();useHint()}
+  if(e.isComposing||e.keyCode===229||e.repeat)return;   /* 한글 조합 중, 키를 길게 누르는 중에는 무시 */
+  if(!$('#overlay').hidden){if(e.key==='Escape'){e.preventDefault();closeSheet()}return}
+  if(e.metaKey)return;
+  var k=e.key;
+  /* Alt 조합: 답을 입력하는 중에도 동작. e.code로 판별해 맥(Option)에서 특수문자가 입력되지 않게 함 */
+  if(e.altKey&&!e.ctrlKey){
+    var d=/^Digit([1-5])$/.exec(e.code||'');
+    if(d){e.preventDefault();setMode(MODES[+d[1]-1].id);return}
+    var act={KeyN:showNotes,KeyS:showStats,KeyL:pickFile,KeyR:askReset,KeyK:showKeys}[e.code];
+    if(act){e.preventDefault();act()}
+    return;
   }
-  else if(phase==='result'&&e.key==='Enter'){e.preventDefault();newQ()}
+  if(k==='?'&&phase!=='typing'){e.preventDefault();showKeys();return}
+  if(phase==='typing'){
+    if(k==='Enter'){e.preventDefault();submit()}
+    else if(k==='F1'||(e.ctrlKey&&(k==='h'||k==='H'))){e.preventDefault();useHint()}
+    else if(k==='Escape'){e.preventDefault();$('#ans').value='';submit()}
+  }else if(phase==='choice'){
+    if(e.ctrlKey)return;
+    if(/^[1-4]$/.test(k)){e.preventDefault();if(+k<=q.choices.length)onChoice(+k-1)}
+    else if(k==='0'||k==='Escape'){e.preventDefault();onChoice(-1)}
+  }else if(phase==='result'){
+    if(k==='Enter'||k===' '){e.preventDefault();newQ()}
+  }
 });
 
 /* ───── 시작 ───── */
