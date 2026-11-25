@@ -221,7 +221,7 @@ button{font:inherit;color:inherit;-webkit-appearance:none;appearance:none}
     </section>
 
     <section class="sec-stats">
-      <h2 class="sec-label">이번 학습</h2>
+      <h2 class="sec-label">학습 기록</h2>
       <div class="stats">
         <svg class="ring" viewBox="0 0 80 80" aria-hidden="true">
           <circle class="track" cx="40" cy="40" r="32" fill="none" stroke-width="7"></circle>
@@ -292,9 +292,25 @@ var SAMPLE=[
 
 var $=function(s){return document.querySelector(s)};
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+var NS=(function(){try{return window.NativeStore||null}catch(e){return null}})();
 var store={
-  get:function(k){try{var v=localStorage.getItem(k);return v==null?null:JSON.parse(v)}catch(e){return null}},
-  set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+  get:function(k){
+    try{
+      if(NS){
+        var n=NS.get(k);
+        if(n!=null&&n!=='')return JSON.parse(n);
+        var l=localStorage.getItem(k);          /* 예전 버전에서 쓰던 기록이 있으면 앱 저장소로 옮김 */
+        if(l!=null){try{NS.set(k,l)}catch(e){}return JSON.parse(l)}
+        return null;
+      }
+      var v=localStorage.getItem(k);return v==null?null:JSON.parse(v);
+    }catch(e){return null}
+  },
+  set:function(k,v){
+    var t;try{t=JSON.stringify(v)}catch(e){return}
+    if(NS){try{NS.set(k,t)}catch(e){}}
+    try{localStorage.setItem(k,t)}catch(e){}
+  }
 };
 
 /* ───── 데이터 ───── */
@@ -339,15 +355,25 @@ var words=[],isSample=false,source='',recent=[],q=null,phase='idle',mode='spell'
 var S=newSession();
 function newSession(){return{total:0,correct:0,streak:0,best:0,wrong:{}}}
 
+function key(n){return isSample?n+'_s':n}
+function saveSession(){
+  store.set(key('wq_sess'),{total:S.total,correct:S.correct,streak:S.streak,best:S.best,wrong:Object.keys(S.wrong)});
+}
+function loadSession(){
+  S=newSession();
+  var d=store.get(key('wq_sess'));if(!d)return;
+  S.total=+d.total||0;S.correct=+d.correct||0;S.streak=+d.streak||0;S.best=+d.best||0;
+  var by={};words.forEach(function(w){by[w.word]=w});
+  (d.wrong||[]).forEach(function(x){if(by[x])S.wrong[x]=by[x]});
+}
 function loadProgress(){
-  var d=store.get('wq_prog')||{};
+  var d=store.get(key('wq_prog'))||{};
   words.forEach(function(w){var p=d[w.word];if(p){w.weight=+p.weight||1;w.right=+p.right||0;w.wrong=+p.wrong||0}});
 }
 function saveProgress(){
-  if(isSample)return;
   var d={};
   words.forEach(function(w){if(w.right||w.wrong)d[w.word]={weight:Math.round(w.weight*1000)/1000,right:w.right,wrong:w.wrong}});
-  store.set('wq_prog',d);
+  store.set(key('wq_prog'),d);
 }
 
 /* ───── 출제·채점 ───── */
@@ -390,7 +416,7 @@ function record(ok){
   var w=q.w;S.total++;
   if(ok){S.correct++;S.streak++;S.best=Math.max(S.best,S.streak);w.right++;w.weight=Math.max(.1,w.weight*(q.extra?.8:.5))}
   else{S.streak=0;w.wrong++;w.weight+=2;S.wrong[w.word]=w}
-  saveProgress();
+  saveProgress();saveSession();
 }
 function weakWords(){
   return words.filter(function(w){return w.wrong>w.right})
@@ -535,17 +561,17 @@ function showStats(){
   if(!S.total)return openSheet('학습 통계','<p class="empty">아직 푼 문제가 없습니다.</p>');
   var k=Object.keys(S.wrong);
   var body='<div class="big-stats"><div><b>'+S.total+'</b><span>푼 문제</span></div><div><b>'+S.correct+'</b><span>정답</span></div><div><b>'+(S.correct/S.total*100).toFixed(1)+'%</b><span>정답률</span></div><div><b>'+S.best+'</b><span>최고 연속</span></div></div>';
-  if(k.length)body+='<div><h3 class="sec-label" style="margin-top:6px">이번에 틀린 단어 · '+k.length+'개</h3><ul class="note-list">'+k.map(function(x){
+  if(k.length)body+='<div><h3 class="sec-label" style="margin-top:6px">틀린 단어 · '+k.length+'개</h3><ul class="note-list">'+k.map(function(x){
     return '<li><span class="w">'+esc(x)+'</span><span class="m">'+esc(S.wrong[x].meaning)+'</span></li>';
   }).join('')+'</ul></div>';
   openSheet('학습 통계',body);
 }
 function askReset(){
-  openSheet('학습 기록 초기화','<p>저장된 가중치와 정답·오답 횟수를 모두 지웁니다. 불러온 단어장은 그대로 남습니다.</p>',
+  openSheet('학습 기록 초기화','<p>저장된 가중치, 정답·오답 횟수, 누적 학습 통계를 모두 지웁니다. 불러온 단어장은 그대로 남습니다.</p>',
     '<button type="button" class="btn" data-close>취소</button><button type="button" class="btn danger" id="doReset">기록 지우기</button>');
   $('#doReset').addEventListener('click',function(){
     words.forEach(function(w){w.weight=1;w.right=0;w.wrong=0});
-    store.set('wq_prog',{});S=newSession();qNo=0;recent=[];
+    store.set(key('wq_prog'),{});S=newSession();saveSession();qNo=0;recent=[];
     $('#overlay').hidden=true;newQ();toast('학습 기록을 지웠습니다');
   });
 }
@@ -566,7 +592,7 @@ $('#file').addEventListener('change',function(){
     words=ws;isSample=false;source=f.name;
     store.set('wq_words',ws.map(function(w){return{word:w.word,meaning:w.meaning,blank:w.blank,sentence:w.sentence,translation:w.translation,target:w.target}}));
     store.set('wq_src',source);
-    loadProgress();S=newSession();recent=[];qNo=0;newQ();
+    loadProgress();loadSession();recent=[];qNo=S.total;newQ();
     toast('단어 '+ws.length+'개를 불러왔습니다');
   };
   rd.readAsArrayBuffer(f);
@@ -608,10 +634,11 @@ document.addEventListener('keydown',function(e){
   var saved=store.get('wq_words');
   if(saved&&saved.length){
     words=saved.map(function(w){return{word:w.word,meaning:w.meaning,blank:w.blank,sentence:w.sentence,translation:w.translation,target:w.target,weight:1,right:0,wrong:0}});
-    source=store.get('wq_src')||'result_final.csv';loadProgress();
+    source=store.get('wq_src')||'result_final.csv';loadProgress();loadSession();qNo=S.total;
   }else{
     isSample=true;
     words=SAMPLE.map(function(r){return makeWord(r[0],r[1],r[2],r[3])}).filter(Boolean);
+    loadProgress();loadSession();qNo=S.total;
   }
   renderModes();newQ();
 })();
